@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash, abort
+from flask import Flask, render_template, redirect, url_for, flash, abort, request
 from flask_bootstrap import Bootstrap
 from flask_ckeditor import CKEditor
 from datetime import date
@@ -11,6 +11,7 @@ from flask_gravatar import Gravatar
 from functools import wraps
 from dotenv import load_dotenv
 import os
+import smtplib
 
 load_dotenv()
 
@@ -21,10 +22,13 @@ Bootstrap(app)
 gravatar = Gravatar(app, size=100, rating='g', default='retro', force_default=False, force_lower=False, use_ssl=False, base_url=None)
 
 ##CONNECT TO DB
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blog.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+#EMAIL CREDENTIALS
+OWN_EMAIL = os.environ.get("EMAIL_ADDRESS")
+OWN_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 
 ##CONFIGURE TABLES
 class BlogPost(db.Model):
@@ -179,10 +183,25 @@ def about():
     return render_template("about.html")
 
 
-@app.route("/contact")
+@app.route("/contact",  methods=["GET", "POST"])
 def contact():
-    return render_template("contact.html")
+    if request.method == "POST":
+        data = request.form
+        send_email(data['name'], data['email'], data['phone'], data['message'])
+        return render_template('contact.html', msg_sent=True)
+    return render_template("contact.html", current_user=current_user, msg_sent=False)
 
+def send_email(name, email, phone, message):
+    email_message = f"Subject: New Blog Message\n\nName: {name}\nEmail: {email}\nPhone: {phone}\nMessage: {message}"
+    OWN_EMAIL = os.environ.get("EMAIL_ADDRESS")
+    OWN_PASSWORD = os.environ.get("EMAIL_PASSWORD")
+    RECIPIENT_EMAIL = os.environ.get("RECIPIENT_EMAIL")
+    SMTP_HOST = os.environ.get("SMTP_HOST")
+    SMTP_PORT = int(os.environ.get("SMTP_PORT"))
+    with smtplib.SMTP(host=SMTP_HOST, port=SMTP_PORT) as connection:
+        connection.starttls()
+        connection.login(OWN_EMAIL, OWN_PASSWORD)
+        connection.sendmail(from_addr=OWN_EMAIL, to_addrs=RECIPIENT_EMAIL, msg=email_message)
 
 @app.route("/new-post", methods=['GET', 'POST'])
 @admin_only
