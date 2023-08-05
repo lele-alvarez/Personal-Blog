@@ -24,7 +24,7 @@ The project covers various technologies and concepts, including:
 
 * **HTML and CSS:** HTML and CSS are used to structure and style the web pages.
 
-* **Render:** The website is deployed on the Heroku platform.
+* **Render:** The website is deployed on the Render platform.
 
 * **SQL:** SQL databases are utilized for data storage and retrieval.
 
